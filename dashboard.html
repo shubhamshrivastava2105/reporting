@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Neoflo — Zalora Reporting Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #131a26;
+    --panel-2: #1a2434;
+    --border: #243044;
+    --text: #e6ecf5;
+    --muted: #8a97ad;
+    --accent: #5b8def;
+    --accent-2: #7ed4b2;
+    --warn: #f5b454;
+    --bad: #ef5a6f;
+    --good: #4ec9a6;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #0b0f17;
+  }
+  .brand h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.2;
+  }
+  .brand .subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .filters {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  }
+  .filter-group {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .filter-group .label {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .pill {
+    background: transparent;
+    color: var(--text);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .pill:hover { background: rgba(255,255,255,0.05); }
+  .pill.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+  main {
+    padding: 24px 28px 64px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 32px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title:first-of-type { margin-top: 8px; }
+  .section-title .hint {
+    color: var(--muted);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+    font-size: 12px;
+  }
+  .grid {
+    display: grid;
+    gap: 14px;
+  }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 1100px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 10px;
+    font-style: italic;
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    cursor: help;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .info-btn:hover,
+  .info-btn:focus-visible {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    outline: none;
+  }
+  .info-btn .tip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: -4px;
+    width: 240px;
+    max-width: calc(100vw - 32px);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 11px;
+    font-size: 11px;
+    font-style: normal;
+    font-family: inherit;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.45;
+    z-index: 200;
+    pointer-events: none;
+    text-align: left;
+    white-space: normal;
+    transition: opacity 0.15s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .info-btn:hover .tip,
+  .info-btn:focus-visible .tip {
+    visibility: visible;
+    opacity: 1;
+  }
+  .card .desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .kpi .value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    margin-top: 6px;
+  }
+  .kpi .delta {
+    font-size: 12px;
+    margin-top: 6px;
+    display: inline-flex; gap: 4px; align-items: center;
+  }
+  .delta.up { color: var(--good); }
+  .delta.down { color: var(--bad); }
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    flex: 1;
+  }
+  .chart-wrap.tall { height: 320px; }
+  .chart-wrap.short { height: 180px; }
+  .percentile-row {
+    display: flex; gap: 12px;
+    margin-top: 8px;
+  }
+  .percentile {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .percentile .lbl {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .percentile .val {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .badge.error { background: rgba(239,90,111,0.15); color: var(--bad); }
+  .badge.warn  { background: rgba(245,180,84,0.15); color: var(--warn); }
+  .badge.ok    { background: rgba(78,201,166,0.15); color: var(--good); }
+  .funnel-row {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 4px;
+  }
+  .funnel-stage {
+    display: grid;
+    grid-template-columns: 110px 1fr 80px;
+    align-items: center;
+    gap: 12px;
+  }
+  .funnel-stage .name { font-size: 12px; color: var(--text); }
+  .funnel-stage .bar {
+    height: 22px;
+    background: var(--panel-2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .funnel-stage .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 4px;
+  }
+  .funnel-stage .count {
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+  }
+  .funnel-stage .drop {
+    font-size: 10px;
+    color: var(--bad);
+    margin-left: 6px;
+  }
+  .legend-inline {
+    display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-top: 8px;
+  }
+  .legend-inline .dot {
+    display: inline-block;
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .footer-note {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="brand">
+      <div class="logo">N</div>
+      <div>
+        <h1>Neoflo — Zalora Reporting</h1>
+        <div class="subtitle">Phase 1 dashboard · last refreshed 14:32 SGT</div>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="filter-group">
+        <span class="label">Range</span>
+        <button class="pill" data-range="today">Today</button>
+        <button class="pill" data-range="7d">7d</button>
+        <button class="pill active" data-range="30d">30d</button>
+        <button class="pill" data-range="custom">Custom</button>
+      </div>
+      <div class="filter-group">
+        <span class="label">Entity</span>
+        <button class="pill active" data-entity="ALL">All</button>
+        <button class="pill" data-entity="SG">SG</button>
+        <button class="pill" data-entity="MY">MY</button>
+        <button class="pill" data-entity="HK">HK</button>
+        <button class="pill" data-entity="ID">ID</button>
+        <button class="pill" data-entity="PH">PH</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 1. VOLUME & COVERAGE -->
+  <div class="section-title">
+    <span>1 · Volume &amp; Coverage</span>
+    <span class="hint">Are we processing the volume we said we would?</span>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="card kpi">
+      <h3>Invoices posted <span class="info-btn" tabindex="0">i<span class="tip">Count of invoices successfully posted to SAP in the selected window. Headline business metric.</span></span></h3>
+      <div class="desc">Successfully posted to SAP in window</div>
+      <div class="value" id="kpi-posted">—</div>
+      <div class="delta up" id="kpi-posted-delta">▲ 8.4% vs prior period</div>
+    </div>
+    <div class="card kpi">
+      <h3>Invoices created <span class="info-btn" tabindex="0">i<span class="tip">Count of invoices created on Neoflo in the window. Top-of-funnel signal for incoming demand.</span></span></h3>
+      <div class="desc">Top-of-funnel demand</div>
+      <div class="value" id="kpi-created">—</div>
+      <div class="delta up" id="kpi-created-delta">▲ 5.1% vs prior period</div>
+    </div>
+    <div class="card kpi">
+      <h3>Coverage <span class="info-btn" tabindex="0">i<span class="tip">Posted invoices as a share of the monthly target. Anchor for "are we on track this month?"</span></span></h3>
+      <div class="desc">Posted ÷ 4,500 monthly target</div>
+      <div class="value" id="kpi-coverage">—</div>
+      <div class="delta up">On track</div>
+    </div>
+    <div class="card kpi">
+      <h3>Avg SLA (p50) <span class="info-btn" tabindex="0">i<span class="tip">Median end-to-end time from invoice creation on Neoflo to successful SAP posting.</span></span></h3>
+      <div class="desc">Creation → SAP posting, median</div>
+      <div class="value" id="kpi-sla">—</div>
+      <div class="delta up">▼ 38s vs prior period</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:14px;">
+    <div class="card">
+      <h3>Invoices posted — daily trend <span class="info-btn" tabindex="0">i<span class="tip">Posted volume per day across the selected window, against the daily target.</span></span></h3>
+      <div class="desc">Posted volume per day with target line at 150/day</div>
+      <div class="chart-wrap"><canvas id="ch-volume-trend"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Posted by entity <span class="info-btn" tabindex="0">i<span class="tip">Share of posted invoices across Zalora's 5 legal entities.</span></span></h3>
+      <div class="desc">Share of posted invoices across SG / MY / HK / ID / PH</div>
+      <div class="chart-wrap"><canvas id="ch-volume-entity"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:14px;">
+    <div class="card">
+      <h3>Funnel — count at each stage <span class="info-btn" tabindex="0">i<span class="tip">Invoice count at each workflow stage.</span></span></h3>
+      <div class="desc">Extraction → Matching → ERP Posting → Posted</div>
+      <div class="funnel-row" id="funnel"></div>
+    </div>
+    <div class="card">
+      <h3>Drop-off by reason <span class="info-btn" tabindex="0">i<span class="tip">Invoices that exited the funnel before posting. Bucketed by user-rejection reason, plus a separate "Stuck in stage" bucket.</span></span></h3>
+      <div class="desc">Where invoices exit the funnel</div>
+      <div class="chart-wrap"><canvas id="ch-dropoff"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 2. INGESTION HEALTH -->
+  <div class="section-title">
+    <span>2 · Ingestion Health</span>
+    <span class="hint">Freshdesk → Neoflo reliability</span>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card kpi">
+      <h3>Ingestion success rate <span class="info-btn" tabindex="0">i<span class="tip">% of Freshdesk tickets set to "Ready for Neoflo" that produced at least one invoice on the platform.</span></span></h3>
+      <div class="desc">Tickets that produced ≥1 invoice</div>
+      <div class="value" id="kpi-ingest">—</div>
+      <div class="delta up">▲ 0.4 pts</div>
+    </div>
+    <div class="card kpi">
+      <h3>Tickets received <span class="info-btn" tabindex="0">i<span class="tip">Count of Freshdesk tickets moved to "Ready for Neoflo" status. Leading indicator of incoming demand.</span></span></h3>
+      <div class="desc">"Ready for Neoflo" status in window</div>
+      <div class="value" id="kpi-tickets">—</div>
+      <div class="delta up">▲ 4.2%</div>
+    </div>
+    <div class="card kpi">
+      <h3>Ingestion errors <span class="info-btn" tabindex="0">i<span class="tip">Tickets where "Ready for Neoflo" fired but no invoice was created.</span></span></h3>
+      <div class="desc">Tickets with zero invoices created</div>
+      <div class="value" id="kpi-errors" style="color:var(--warn);">—</div>
+      <div class="delta down">▲ 3 vs prior period</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:14px;">
+    <div class="card">
+      <h3>Ingestion success vs. error <span class="info-btn" tabindex="0">i<span class="tip">Pie split of tickets producing ≥1 invoice vs. tickets that failed ingestion.</span></span></h3>
+      <div class="desc">Tickets producing invoices vs. failing to ingest</div>
+      <div class="chart-wrap"><canvas id="ch-ingest-pie"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Invoices per ticket — distribution <span class="info-btn" tabindex="0">i<span class="tip">How many invoices arrive on each Freshdesk ticket.</span></span></h3>
+      <div class="desc">Most tickets carry 1 invoice; long tail of multi-invoice tickets</div>
+      <div class="chart-wrap"><canvas id="ch-invoices-per-ticket"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>Recent ingestion errors <span class="info-btn" tabindex="0">i<span class="tip">Investigable list of tickets that failed to ingest.</span></span></h3>
+    <div class="desc">Investigable list — Freshdesk tickets where webhook fired but no invoice was created</div>
+    <table>
+      <thead>
+        <tr><th>Ticket</th><th>Entity</th><th>Time</th><th>Last webhook state</th><th>Reason</th><th>Status</th></tr>
+      </thead>
+      <tbody id="ingest-errors-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- 3. STAGE HEALTH -->
+  <div class="section-title">
+    <span>3 · Stage Health</span>
+    <span class="hint">Live snapshot — where invoices are currently stuck</span>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card">
+      <h3>Stuck in extraction <span class="info-btn" tabindex="0">i<span class="tip">Live count of invoices currently in the extraction stage longer than expected.</span></span></h3>
+      <div class="desc">> 5 min in extraction stage</div>
+      <div class="chart-wrap short"><canvas id="ch-stuck-extract"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Stuck in matching <span class="info-btn" tabindex="0">i<span class="tip">Live count of invoices currently on the Summary Screen / matching stage longer than expected.</span></span></h3>
+      <div class="desc">> 15 min on Summary screen</div>
+      <div class="chart-wrap short"><canvas id="ch-stuck-match"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Stuck in ERP posting <span class="info-btn" tabindex="0">i<span class="tip">Live count where Matching has been confirmed and the invoice is in ERP Posting but SAP posting has not completed.</span></span></h3>
+      <div class="desc">> 2 min in ERP Posting after Matching confirmed</div>
+      <div class="chart-wrap short"><canvas id="ch-stuck-post"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 4. QUALITY & ACCURACY -->
+  <div class="section-title">
+    <span>4 · Quality &amp; Accuracy</span>
+    <span class="hint">Is the AI doing its job?</span>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="card kpi">
+      <h3>PO extraction success <span class="info-btn" tabindex="0">i<span class="tip">% of invoices where the AI populated the PO field and the user did not edit it.</span></span></h3>
+      <div class="desc">AI populated PO &amp; user didn't edit</div>
+      <div class="value" id="kpi-po">—</div>
+      <div class="delta up">▲ 2.1 pts</div>
+    </div>
+    <div class="card kpi">
+      <h3>Zero-edit extractions <span class="info-btn" tabindex="0">i<span class="tip">% of invoices where no extracted field was edited by the user.</span></span></h3>
+      <div class="desc">Invoices the AI got fully right</div>
+      <div class="value" id="kpi-zeroedit">—</div>
+      <div class="delta up">▲ 1.4 pts</div>
+    </div>
+    <div class="card kpi">
+      <h3>Duplicate flag rate <span class="info-btn" tabindex="0">i<span class="tip">% of invoices auto-flagged as duplicate by the dedupe task.</span></span></h3>
+      <div class="desc">Invoices auto-flagged as duplicate</div>
+      <div class="value" id="kpi-dup">—</div>
+      <div class="delta down">▲ 0.6 pts</div>
+    </div>
+    <div class="card kpi">
+      <h3>Reprocessing rate <span class="info-btn" tabindex="0">i<span class="tip">% of rejected invoices later reset to "Ready for Neoflo" and reprocessed.</span></span></h3>
+      <div class="desc">Rejected → re-ingested invoices</div>
+      <div class="value" id="kpi-reproc">—</div>
+      <div class="delta up">▼ 0.8 pts</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:14px;">
+    <div class="card">
+      <h3>Most-edited fields at extraction <span class="info-btn" tabindex="0">i<span class="tip">Which extracted fields the user edits most often.</span></span></h3>
+      <div class="desc">Where the AI needs the most human correction</div>
+      <div class="chart-wrap"><canvas id="ch-edits"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Rejection split <span class="info-btn" tabindex="0">i<span class="tip">Breakdown of user rejections by reason. All rejections on Neoflo are user-initiated — there is no automatic/system rejection.</span></span></h3>
+      <div class="desc">User-initiated rejections, by reason</div>
+      <div class="chart-wrap"><canvas id="ch-rejection"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 5. EFFICIENCY & SLA -->
+  <div class="section-title">
+    <span>5 · Efficiency &amp; SLA</span>
+    <span class="hint">Faster than the 6-min manual baseline?</span>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>End-to-end SLA — percentiles <span class="info-btn" tabindex="0">i<span class="tip">Time from invoice creation on Neoflo to SAP posting, reported as median + p75 / p90 / p95.</span></span></h3>
+      <div class="desc">Invoice created → posted to SAP. Manual baseline = 6 min per invoice.</div>
+      <div class="percentile-row">
+        <div class="percentile"><div class="lbl">Median (p50)</div><div class="val" id="p50">—</div></div>
+        <div class="percentile"><div class="lbl">p75</div><div class="val" id="p75">—</div></div>
+        <div class="percentile"><div class="lbl">p90</div><div class="val" id="p90">—</div></div>
+        <div class="percentile"><div class="lbl">p95</div><div class="val" id="p95">—</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Review-to-posted time — percentiles <span class="info-btn" tabindex="0">i<span class="tip">Time from user clicking Review on an invoice to the invoice being successfully posted to SAP. The user-side processing window.</span></span></h3>
+      <div class="desc">Review clicked → posted to SAP. Contractual user-side window.</div>
+      <div class="percentile-row">
+        <div class="percentile"><div class="lbl">Median (p50)</div><div class="val" id="rp50">—</div></div>
+        <div class="percentile"><div class="lbl">p75</div><div class="val" id="rp75">—</div></div>
+        <div class="percentile"><div class="lbl">p90</div><div class="val" id="rp90">—</div></div>
+        <div class="percentile"><div class="lbl">p95</div><div class="val" id="rp95">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:14px;">
+    <div class="card">
+      <h3>SLA trend (p50 vs. p95) <span class="info-btn" tabindex="0">i<span class="tip">Daily p50 (typical) and p95 (tail) end-to-end SLA over time.</span></span></h3>
+      <div class="desc">Watch them together — median tracks typical, p95 tracks tail pain</div>
+      <div class="chart-wrap"><canvas id="ch-sla-trend"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Per-agent throughput <span class="info-btn" tabindex="0">i<span class="tip">Invoices posted per agent in the window. Framed as system load distribution, not agent grading.</span></span></h3>
+      <div class="desc">Invoices posted per agent. Color = median review-to-posted time.</div>
+      <div class="chart-wrap"><canvas id="ch-throughput"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:14px;">
+    <div class="card">
+      <h3>Auto-confirm rate by stage <span class="info-btn" tabindex="0">i<span class="tip">% of invoices where the system's output was accepted without any user edits, per stage.</span></span></h3>
+      <div class="desc">% of invoices where the system's output was accepted without intervention</div>
+      <div class="chart-wrap"><canvas id="ch-autoconfirm"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Full auto-confirm (STP-eligible) <span class="info-btn" tabindex="0">i<span class="tip">% of invoices where all 3 stages auto-confirmed — the user did nothing but click Approve.</span></span></h3>
+      <div class="desc">All 3 stages auto-confirmed — headline for STP enablement</div>
+      <div class="chart-wrap"><canvas id="ch-stp"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 6. RELIABILITY -->
+  <div class="section-title">
+    <span>6 · Reliability</span>
+    <span class="hint">Where is the platform breaking?</span>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card kpi">
+      <h3>SAP posting success (1st try) <span class="info-btn" tabindex="0">i<span class="tip">% of "Post to ERP" first attempts that succeed.</span></span></h3>
+      <div class="desc">First-attempt successful postings</div>
+      <div class="value" id="kpi-sap">—</div>
+      <div class="delta up">▲ 0.3 pts</div>
+    </div>
+    <div class="card kpi">
+      <h3>Posting attempts <span class="info-btn" tabindex="0">i<span class="tip">Total number of "Post to ERP" attempts in the window, including retries.</span></span></h3>
+      <div class="desc">Total attempts in window</div>
+      <div class="value" id="kpi-attempts">—</div>
+    </div>
+    <div class="card kpi">
+      <h3>Retry success rate <span class="info-btn" tabindex="0">i<span class="tip">Of invoices that failed their first attempt, % that eventually posted on retry.</span></span></h3>
+      <div class="desc">Failed → eventually posted on retry</div>
+      <div class="value" id="kpi-retry">—</div>
+      <div class="delta up">▲ 1.7 pts</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:14px;">
+    <div class="card">
+      <h3>SAP posting outcomes <span class="info-btn" tabindex="0">i<span class="tip">All SAP posting attempts split into first-try success, retried-then-posted, and still-failing.</span></span></h3>
+      <div class="desc">First-try success vs. retried vs. still failing</div>
+      <div class="chart-wrap"><canvas id="ch-sap"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Posting failures — daily <span class="info-btn" tabindex="0">i<span class="tip">Daily count of failed SAP posting attempts, by error reason.</span></span></h3>
+      <div class="desc">Failure count by day, broken out by error reason</div>
+      <div class="chart-wrap"><canvas id="ch-failures"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>Currently-failing invoices <span class="info-btn" tabindex="0">i<span class="tip">Live list of invoices that have failed SAP posting and haven't yet recovered.</span></span></h3>
+    <div class="desc">Live ops list — invoices that have failed SAP posting and haven't recovered</div>
+    <table>
+      <thead>
+        <tr><th>Invoice</th><th>Entity</th><th>PO series</th><th>Last attempt</th><th>Error</th><th>Retries</th></tr>
+      </thead>
+      <tbody id="failing-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer-note">
+    Phase 1 dashboard · seeded with dummy data · metrics defined in Zalora Reporting Metric Dictionary
+  </div>
+
+</main>
+
+<script>
+// ----------------------------------------------------------------------------
+// Chart.js global defaults
+// ----------------------------------------------------------------------------
+Chart.defaults.color = '#8a97ad';
+Chart.defaults.borderColor = '#243044';
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+Chart.defaults.plugins.legend.labels.boxHeight = 12;
+
+const PALETTE = ['#5b8def', '#7ed4b2', '#f5b454', '#ef5a6f', '#b58aff', '#4ec9a6'];
+const ENTITIES = ['SG', 'MY', 'HK', 'ID', 'PH'];
+
+// ----------------------------------------------------------------------------
+// Deterministic-ish dummy data
+// ----------------------------------------------------------------------------
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function generateData(range, entity) {
+  const days = range === 'today' ? 1 : range === '7d' ? 7 : 30;
+  const rnd = seededRandom(days * 37 + entity.charCodeAt(0));
+
+  // entity multipliers (SG largest, PH smallest)
+  const entityShare = { SG: 0.32, MY: 0.24, HK: 0.18, ID: 0.16, PH: 0.10 };
+  const share = entity === 'ALL' ? 1 : entityShare[entity];
+
+  const baseDaily = 155;
+  const dailyPosted = [], dailyCreated = [], dailyFailures = [], dailyP50 = [], dailyP95 = [];
+  const labels = [];
+  for (let i = 0; i < days; i++) {
+    const noise = 1 + (rnd() - 0.5) * 0.25;
+    const posted = Math.round(baseDaily * share * noise);
+    const created = Math.round(posted * (1 + rnd() * 0.18));
+    dailyPosted.push(posted);
+    dailyCreated.push(created);
+    dailyFailures.push(Math.max(0, Math.round((rnd() * 5) * share)));
+    dailyP50.push(+(3.2 + rnd() * 0.8).toFixed(1));
+    dailyP95.push(+(8 + rnd() * 4).toFixed(1));
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1 - i));
+    labels.push(d.toLocaleDateString('en', { month: 'short', day: 'numeric' }));
+  }
+
+  const totalPosted = dailyPosted.reduce((a, b) => a + b, 0);
+  const totalCreated = dailyCreated.reduce((a, b) => a + b, 0);
+  const totalFailures = dailyFailures.reduce((a, b) => a + b, 0);
+
+  // funnel — extraction shrinks toward posted
+  const funnel = [
+    { name: 'Extraction',  count: totalCreated },
+    { name: 'Matching',    count: Math.round(totalCreated * 0.95) },
+    { name: 'ERP Posting', count: Math.round(totalCreated * 0.90) },
+    { name: 'Posted',      count: totalPosted },
+  ];
+
+  // posted by entity (only meaningful for ALL; otherwise highlight single)
+  const entityData = ENTITIES.map(e => Math.round(baseDaily * days * entityShare[e]));
+
+  // monthly target for coverage (scale by share + range fraction)
+  const monthlyTarget = 4500 * share * (days / 30);
+
+  return {
+    labels,
+    dailyPosted, dailyCreated, dailyFailures, dailyP50, dailyP95,
+    totalPosted, totalCreated, totalFailures,
+    funnel,
+    entityData,
+    monthlyTarget,
+    coveragePct: Math.min(100, (totalPosted / monthlyTarget) * 100),
+    ingestionSuccess: 97.8 + (rnd() - 0.5) * 1.4,
+    ticketsReceived: Math.round(totalCreated * 0.82),
+    ingestionErrors: Math.max(2, Math.round(totalCreated * 0.014)),
+    poSuccess: 91.4 + (rnd() - 0.5) * 2,
+    zeroEdit: 64.2 + (rnd() - 0.5) * 4,
+    duplicateRate: 3.1 + (rnd() - 0.5) * 1,
+    reprocessRate: 8.4 + (rnd() - 0.5) * 2,
+    p50: 3.6, p75: 4.8, p90: 7.2, p95: 10.4,
+    rp50: 3.0, rp75: 4.0, rp90: 6.0, rp95: 8.5,
+    sapSuccess: 98.6 + (rnd() - 0.5) * 0.8,
+    sapAttempts: totalPosted + totalFailures,
+    retrySuccess: 78 + (rnd() - 0.5) * 6,
+    rnd
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Charts (kept in a registry so filter changes re-render them)
+// ----------------------------------------------------------------------------
+const charts = {};
+
+function destroyAll() {
+  Object.values(charts).forEach(c => c.destroy());
+  Object.keys(charts).forEach(k => delete charts[k]);
+}
+
+function fmt(n) { return n.toLocaleString('en-US'); }
+function fmtPct(n, d = 1) { return n.toFixed(d) + '%'; }
+function fmtMin(n) {
+  const m = Math.floor(n);
+  const s = Math.round((n - m) * 60);
+  return `${m}m ${String(s).padStart(2,'0')}s`;
+}
+
+function renderKPIs(d) {
+  document.getElementById('kpi-posted').textContent = fmt(d.totalPosted);
+  document.getElementById('kpi-created').textContent = fmt(d.totalCreated);
+  document.getElementById('kpi-coverage').textContent = fmtPct(d.coveragePct, 0);
+  document.getElementById('kpi-sla').textContent = fmtMin(d.p50);
+
+  document.getElementById('kpi-ingest').textContent = fmtPct(d.ingestionSuccess);
+  document.getElementById('kpi-tickets').textContent = fmt(d.ticketsReceived);
+  document.getElementById('kpi-errors').textContent = fmt(d.ingestionErrors);
+
+  document.getElementById('kpi-po').textContent = fmtPct(d.poSuccess);
+  document.getElementById('kpi-zeroedit').textContent = fmtPct(d.zeroEdit);
+  document.getElementById('kpi-dup').textContent = fmtPct(d.duplicateRate);
+  document.getElementById('kpi-reproc').textContent = fmtPct(d.reprocessRate);
+
+  document.getElementById('p50').textContent = fmtMin(d.p50);
+  document.getElementById('p75').textContent = fmtMin(d.p75);
+  document.getElementById('p90').textContent = fmtMin(d.p90);
+  document.getElementById('p95').textContent = fmtMin(d.p95);
+  document.getElementById('rp50').textContent = fmtMin(d.rp50);
+  document.getElementById('rp75').textContent = fmtMin(d.rp75);
+  document.getElementById('rp90').textContent = fmtMin(d.rp90);
+  document.getElementById('rp95').textContent = fmtMin(d.rp95);
+
+  document.getElementById('kpi-sap').textContent = fmtPct(d.sapSuccess);
+  document.getElementById('kpi-attempts').textContent = fmt(d.sapAttempts);
+  document.getElementById('kpi-retry').textContent = fmtPct(d.retrySuccess, 0);
+}
+
+function renderFunnel(d) {
+  const max = d.funnel[0].count;
+  const html = d.funnel.map((s, i) => {
+    const pct = (s.count / max) * 100;
+    const drop = i > 0 ? d.funnel[i-1].count - s.count : 0;
+    return `
+      <div class="funnel-stage">
+        <div class="name">${s.name}</div>
+        <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="count">${fmt(s.count)}${i > 0 ? `<div class="drop">-${fmt(drop)}</div>` : ''}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('funnel').innerHTML = html;
+}
+
+function renderIngestErrors() {
+  const rows = [
+    ['#48211', 'SG', '14:02', 'webhook_timeout', 'Payload missing attachment', 'Chasing'],
+    ['#48198', 'MY', '13:47', 'webhook_500',     'Freshdesk 500 on fetch',    'Auto-retry'],
+    ['#48172', 'ID', '12:15', 'webhook_ok',      'Vendor PDF unreadable',     'Manual'],
+    ['#48156', 'SG', '11:34', 'webhook_timeout', 'Timeout after 30s',         'Chasing'],
+    ['#48140', 'HK', '10:08', 'webhook_ok',      'OCR returned no fields',    'Investigating'],
+  ];
+  document.getElementById('ingest-errors-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td><b>${r[0]}</b></td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
+      <td><span class="badge warn">${r[3]}</span></td>
+      <td>${r[4]}</td>
+      <td><span class="badge ${r[5] === 'Auto-retry' ? 'ok' : 'error'}">${r[5]}</span></td>
+    </tr>`).join('');
+}
+
+function renderFailingInvoices() {
+  const rows = [
+    ['INV-9981', 'SG', '51/53', '14:21', 'SAP_403_VENDOR_BLOCK', 3],
+    ['INV-9974', 'MY', '52',    '13:55', 'SAP_TIMEOUT',          5],
+    ['INV-9962', 'ID', '54',    '12:48', 'SAP_DUPLICATE_DOC',    1],
+    ['INV-9951', 'HK', '52',    '11:10', 'SAP_GL_INACTIVE',      2],
+  ];
+  document.getElementById('failing-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td><b>${r[0]}</b></td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
+      <td>${r[3]}</td>
+      <td><span class="badge error">${r[4]}</span></td>
+      <td>${r[5]}</td>
+    </tr>`).join('');
+}
+
+function buildCharts(d) {
+  destroyAll();
+
+  // === Volume trend (line) ===
+  charts.volumeTrend = new Chart(document.getElementById('ch-volume-trend'), {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [
+        {
+          label: 'Posted',
+          data: d.dailyPosted,
+          borderColor: PALETTE[0],
+          backgroundColor: 'rgba(91,141,239,0.15)',
+          fill: true, tension: 0.3, borderWidth: 2, pointRadius: 0,
+        },
+        {
+          label: 'Created',
+          data: d.dailyCreated,
+          borderColor: PALETTE[1],
+          borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'Target',
+          data: d.labels.map(() => 150),
+          borderColor: '#ef5a6f',
+          borderDash: [2, 4], borderWidth: 1, pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, grid: { color: '#1a2434' } }, x: { grid: { display: false } } },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // === Posted by entity (doughnut) ===
+  charts.volumeEntity = new Chart(document.getElementById('ch-volume-entity'), {
+    type: 'doughnut',
+    data: {
+      labels: ENTITIES,
+      datasets: [{ data: d.entityData, backgroundColor: PALETTE, borderColor: '#131a26', borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { position: 'right' } }
+    }
+  });
+
+  // === Drop-off by reason (horizontal bar) ===
+  charts.dropoff = new Chart(document.getElementById('ch-dropoff'), {
+    type: 'bar',
+    data: {
+      labels: ['Duplicate Invoice', 'Invalid Invoice', 'Not an Invoice', 'Other (user)', 'Stuck in stage'],
+      datasets: [{
+        data: [
+          Math.round(d.totalCreated * 0.035),
+          Math.round(d.totalCreated * 0.022),
+          Math.round(d.totalCreated * 0.014),
+          Math.round(d.totalCreated * 0.006),
+          Math.round(d.totalCreated * 0.009),
+        ],
+        backgroundColor: [PALETTE[0], PALETTE[2], PALETTE[3], PALETTE[4], PALETTE[5]],
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { beginAtZero: true, grid: { color: '#1a2434' } }, y: { grid: { display: false } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // === Ingestion pie ===
+  charts.ingestPie = new Chart(document.getElementById('ch-ingest-pie'), {
+    type: 'pie',
+    data: {
+      labels: ['Produced ≥1 invoice', 'Failed to ingest'],
+      datasets: [{
+        data: [d.ticketsReceived - d.ingestionErrors, d.ingestionErrors],
+        backgroundColor: [PALETTE[1], PALETTE[3]],
+        borderColor: '#131a26', borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // === Invoices per ticket (bar) ===
+  charts.invoicesPerTicket = new Chart(document.getElementById('ch-invoices-per-ticket'), {
+    type: 'bar',
+    data: {
+      labels: ['1 invoice', '2 invoices', '3 invoices', '4+ invoices'],
+      datasets: [{
+        label: 'Tickets',
+        data: [
+          Math.round(d.ticketsReceived * 0.71),
+          Math.round(d.ticketsReceived * 0.19),
+          Math.round(d.ticketsReceived * 0.07),
+          Math.round(d.ticketsReceived * 0.03),
+        ],
+        backgroundColor: PALETTE[0],
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, grid: { color: '#1a2434' } }, x: { grid: { display: false } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // === Stuck-in-stage (single-bar gauges) ===
+  const stuckOpts = (color) => ({
+    responsive: true, maintainAspectRatio: false,
+    scales: { x: { beginAtZero: true, grid: { color: '#1a2434' } }, y: { grid: { display: false } } },
+    plugins: { legend: { display: false } }
+  });
+
+  charts.stuckExtract = new Chart(document.getElementById('ch-stuck-extract'), {
+    type: 'bar',
+    data: {
+      labels: ENTITIES,
+      datasets: [{ data: [3, 1, 0, 2, 1], backgroundColor: PALETTE[2], borderRadius: 4 }]
+    },
+    options: { ...stuckOpts(PALETTE[2]), indexAxis: 'y' }
+  });
+  charts.stuckMatch = new Chart(document.getElementById('ch-stuck-match'), {
+    type: 'bar',
+    data: {
+      labels: ENTITIES,
+      datasets: [{ data: [5, 4, 2, 6, 1], backgroundColor: PALETTE[0], borderRadius: 4 }]
+    },
+    options: { ...stuckOpts(PALETTE[0]), indexAxis: 'y' }
+  });
+  charts.stuckPost = new Chart(document.getElementById('ch-stuck-post'), {
+    type: 'bar',
+    data: {
+      labels: ENTITIES,
+      datasets: [{ data: [1, 0, 0, 1, 0], backgroundColor: PALETTE[3], borderRadius: 4 }]
+    },
+    options: { ...stuckOpts(PALETTE[3]), indexAxis: 'y' }
+  });
+
+  // === Most-edited fields (bar) ===
+  charts.edits = new Chart(document.getElementById('ch-edits'), {
+    type: 'bar',
+    data: {
+      labels: ['PO number', 'Line items', 'Tax amount', 'Vendor', 'Invoice date', 'Currency'],
+      datasets: [{
+        label: '% of invoices with field edited',
+        data: [12.4, 18.6, 9.2, 4.8, 3.1, 1.4],
+        backgroundColor: PALETTE[0],
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { beginAtZero: true, grid: { color: '#1a2434' }, ticks: { callback: v => v + '%' } }, y: { grid: { display: false } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // === Rejection split (pie) ===
+  charts.rejection = new Chart(document.getElementById('ch-rejection'), {
+    type: 'pie',
+    data: {
+      labels: ['Duplicate Invoice', 'PO Fully Utilized', 'Invalid Invoice', 'Vendor Mismatch', 'Missing Info', 'Other'],
+      datasets: [{
+        data: [38, 22, 14, 12, 9, 5],
+        backgroundColor: PALETTE,
+        borderColor: '#131a26', borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right' } }
+    }
+  });
+
+  // === SLA trend (p50 vs p95) line ===
+  charts.slaTrend = new Chart(document.getElementById('ch-sla-trend'), {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [
+        {
+          label: 'p50 (median)',
+          data: d.dailyP50,
+          borderColor: PALETTE[1], borderWidth: 2, pointRadius: 0, tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'p95',
+          data: d.dailyP95,
+          borderColor: PALETTE[3], borderWidth: 2, pointRadius: 0, tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'Manual baseline (6 min)',
+          data: d.labels.map(() => 6),
+          borderColor: '#8a97ad', borderDash: [3, 4], borderWidth: 1, pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#1a2434' }, ticks: { callback: v => v + ' min' } },
+        x: { grid: { display: false } }
+      },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // === Per-agent throughput (horizontal bar, colored by median review-to-posted time) ===
+  const agents = [
+    { name: 'Wei Lin',  posted: Math.round(d.totalPosted * 0.22), medMin: 3.1 },
+    { name: 'Anita',    posted: Math.round(d.totalPosted * 0.20), medMin: 3.6 },
+    { name: 'Kumar',    posted: Math.round(d.totalPosted * 0.18), medMin: 2.9 },
+    { name: 'Mira',     posted: Math.round(d.totalPosted * 0.15), medMin: 4.2 },
+    { name: 'Daniel',   posted: Math.round(d.totalPosted * 0.13), medMin: 3.8 },
+    { name: 'Priya',    posted: Math.round(d.totalPosted * 0.12), medMin: 4.5 },
+  ];
+  const tColor = m => m < 3.5 ? PALETTE[1] : m < 4.2 ? PALETTE[2] : PALETTE[3];
+  charts.throughput = new Chart(document.getElementById('ch-throughput'), {
+    type: 'bar',
+    data: {
+      labels: agents.map(a => a.name),
+      datasets: [{
+        label: 'Invoices posted',
+        data: agents.map(a => a.posted),
+        backgroundColor: agents.map(a => tColor(a.medMin)),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { beginAtZero: true, grid: { color: '#1a2434' } }, y: { grid: { display: false } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => `Median review-to-posted: ${agents[ctx.dataIndex].medMin} min`
+          }
+        }
+      }
+    }
+  });
+
+  // === Auto-confirm by stage (bar) ===
+  charts.autoConfirm = new Chart(document.getElementById('ch-autoconfirm'), {
+    type: 'bar',
+    data: {
+      labels: ['Extraction', 'Matching', 'ERP Posting'],
+      datasets: [{
+        label: 'Auto-confirm %',
+        data: [64.2, 81.5, 96.3],
+        backgroundColor: [PALETTE[0], PALETTE[1], PALETTE[5]],
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, max: 100, grid: { color: '#1a2434' }, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // === STP-eligible (doughnut with center) ===
+  charts.stp = new Chart(document.getElementById('ch-stp'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Full auto-confirm', 'Required ≥1 edit'],
+      datasets: [{
+        data: [48, 52],
+        backgroundColor: [PALETTE[1], PALETTE[5]],
+        borderColor: '#131a26', borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '70%',
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // === SAP posting outcomes (pie) ===
+  charts.sap = new Chart(document.getElementById('ch-sap'), {
+    type: 'pie',
+    data: {
+      labels: ['First-try success', 'Retried & posted', 'Still failing'],
+      datasets: [{
+        data: [
+          Math.round(d.sapAttempts * 0.986),
+          Math.round(d.sapAttempts * 0.011),
+          Math.round(d.sapAttempts * 0.003),
+        ],
+        backgroundColor: [PALETTE[1], PALETTE[2], PALETTE[3]],
+        borderColor: '#131a26', borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // === Daily failures by reason (stacked bar) ===
+  charts.failures = new Chart(document.getElementById('ch-failures'), {
+    type: 'bar',
+    data: {
+      labels: d.labels,
+      datasets: [
+        { label: 'Timeout',       data: d.dailyFailures.map(f => Math.round(f * 0.4)), backgroundColor: PALETTE[0], stack: 'a', borderRadius: 2 },
+        { label: 'Vendor block',  data: d.dailyFailures.map(f => Math.round(f * 0.3)), backgroundColor: PALETTE[2], stack: 'a', borderRadius: 2 },
+        { label: 'Duplicate doc', data: d.dailyFailures.map(f => Math.round(f * 0.2)), backgroundColor: PALETTE[3], stack: 'a', borderRadius: 2 },
+        { label: 'Other',         data: d.dailyFailures.map(f => Math.round(f * 0.1)), backgroundColor: PALETTE[4], stack: 'a', borderRadius: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, stacked: true, grid: { color: '#1a2434' } }, x: { stacked: true, grid: { display: false } } },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Filter state + wiring
+// ----------------------------------------------------------------------------
+const state = { range: '30d', entity: 'ALL' };
+
+function refresh() {
+  const d = generateData(state.range, state.entity);
+  renderKPIs(d);
+  renderFunnel(d);
+  renderIngestErrors();
+  renderFailingInvoices();
+  buildCharts(d);
+}
+
+document.querySelectorAll('.pill[data-range]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.pill[data-range]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.range = b.dataset.range;
+    refresh();
+  });
+});
+document.querySelectorAll('.pill[data-entity]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.pill[data-entity]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.entity = b.dataset.entity;
+    refresh();
+  });
+});
+
+refresh();
+</script>
+
+</body>
+</html>
